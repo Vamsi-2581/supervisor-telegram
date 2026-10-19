@@ -133,7 +133,6 @@ def test_transliteration_is_czech_flavoured():
 
 async def test_embedding_inference_runs_off_the_event_loop(monkeypatch) -> None:
     """Semantic fallback must not block the API worker while ONNX runs."""
-    import asyncio
     import threading
     from types import SimpleNamespace
 
