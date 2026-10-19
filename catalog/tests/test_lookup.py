@@ -128,3 +128,34 @@ def test_transliteration_is_czech_flavoured():
     assert transliterate("ЧВУТ") == "cvut"
     assert transliterate("вше") == "vse"
     assert transliterate("мфф ук") == "mff uk"
+
+
+
+async def test_embedding_inference_runs_off_the_event_loop(monkeypatch) -> None:
+    """Semantic fallback must not block the API worker while ONNX runs."""
+    import asyncio
+    import threading
+    from types import SimpleNamespace
+
+    from students_cz.services import embedding
+    from students_cz.services.lookup import find_by_meaning
+
+    event_loop_thread = threading.get_ident()
+
+    class ThreadCheckingEmbedder:
+        name = "thread-check"
+
+        def encode(self, texts: list[str]) -> list[list[float]]:
+            assert threading.get_ident() != event_loop_thread, (
+                "embedding inference must not run on the event-loop thread"
+            )
+            return [[0.0] * embedding.DIMENSIONS]
+
+    class EmptySession:
+        async def execute(self, statement):
+            return SimpleNamespace(all=lambda: [])
+
+    model = ThreadCheckingEmbedder()
+    monkeypatch.setattr(embedding, "get_embedder", lambda: model)
+
+    assert await find_by_meaning(EmptySession(), "query", "en") == (None, None)
