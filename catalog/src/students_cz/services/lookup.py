@@ -27,6 +27,7 @@ asks how well the name matches *some part* of the query, which is the actual
 question.
 """
 
+import asyncio
 import unicodedata
 from dataclasses import dataclass
 
@@ -347,7 +348,7 @@ async def find_by_meaning(
     model = get_embedder()
     if model is None:
         return None, None
-    vector = model.encode([as_query(query)])[0]
+    vector = (await asyncio.to_thread(model.encode, [as_query(query)]))[0]
 
     # Distance rather than similarity, because that is the operator pgvector
     # indexes; cosine similarity is one minus it.
