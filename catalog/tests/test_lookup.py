@@ -1,8 +1,12 @@
 """Fuzzy lookup against the seeded reference data."""
 
+import threading
+from types import SimpleNamespace
+
 import pytest
 
-from students_cz.services.lookup import find_subjects, normalise
+from students_cz.services import embedding
+from students_cz.services.lookup import find_by_meaning, find_subjects, normalise
 
 pytestmark = pytest.mark.asyncio  # every async test here; the one sync test opts out
 
@@ -130,15 +134,8 @@ def test_transliteration_is_czech_flavoured():
     assert transliterate("мфф ук") == "mff uk"
 
 
-
 async def test_embedding_inference_runs_off_the_event_loop(monkeypatch) -> None:
     """Semantic fallback must not block the API worker while ONNX runs."""
-    import threading
-    from types import SimpleNamespace
-
-    from students_cz.services import embedding
-    from students_cz.services.lookup import find_by_meaning
-
     event_loop_thread = threading.get_ident()
 
     class ThreadCheckingEmbedder:
